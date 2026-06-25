@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#00d4ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="A班シフト">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>A班勤務表</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg-deep: #0a0d12;
+  --bg-card: #111621;
+  --bg-panel: #161c2a;
+  --bg-hover: #1e2638;
+  --accent-cyan: #00d4ff;
+  --accent-red: #ff4466;
+  --accent-blue: #4488ff;
+  --accent-gold: #ffaa00;
+  --accent-green: #00e676;
+  --text-primary: #e8eaf0;
+  --text-secondary: #7a8299;
+  --text-muted: #3d4560;
+  --border: #1e2a40;
+  --border-bright: #2a3a5a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  padding-bottom: 80px;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none; z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; padding: 0 14px; }
+
+/* ── Header ── */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 14px 12px;
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,13,18,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.logo { font-family: 'Orbitron', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--accent-cyan); text-shadow: 0 0 16px rgba(0,212,255,0.4); }
+.logo small { color: var(--text-muted); font-size: 0.6rem; display: block; letter-spacing: 0.15em; font-weight: 400; margin-top: 1px; }
+#clockDisplay { font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--text-secondary); letter-spacing: 0.1em; }
+
+/* ── Today card ── */
+.today-card {
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-panel));
+  border: 1px solid var(--border-bright);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin: 14px 0;
+  position: relative; overflow: hidden;
+}
+.today-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue), transparent);
+}
+.today-lbl { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; }
+.today-date-str { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; color: var(--text-primary); margin-bottom: 12px; }
+.shift-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 30px; font-size: 1rem; font-weight: 700; }
+.shift-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.shift-badge.hiru { background: rgba(255,68,102,.12); color: #ff4466; border: 1px solid rgba(255,68,102,.3); }
+.shift-badge.yoru { background: rgba(68,136,255,.12); color: #4488ff; border: 1px solid rgba(68,136,255,.3); }
+.shift-badge.kyu  { background: rgba(122,130,153,.08); color: #7a8299; border: 1px solid rgba(122,130,153,.2); }
+.next-shift-row { margin-top: 10px; font-size: 0.78rem; color: var(--text-secondary); }
+.next-shift-row span { color: var(--accent-gold); font-weight: 600; }
+
+/* ── Bottom nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10,13,18,0.95); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  display: flex;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 10px 4px 12px;
+  background: transparent; border: none; color: var(--text-muted);
+  font-family: 'Noto Sans JP', sans-serif; font-size: 0.6rem;
+  cursor: pointer; transition: color 0.2s; gap: 3px;
+}
+.nav-btn .icon { font-size: 1.3rem; line-height: 1; }
+.nav-btn.active { color: var(--accent-cyan); }
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Calendar ── */
+.cal-nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-month-lbl { font-family: 'Orbitron', sans-serif; font-size: 0.95rem; color: var(--accent-cyan); }
+.nav-arrow {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center; transition: border-color .2s;
+}
+.nav-arrow:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+.cal-grid { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.cal-head { display: grid; grid-template-columns: 36px repeat(7,1fr); background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+.cal-head-cell { padding: 8px 2px; text-align: center; font-size: 0.6rem; color: var(--text-secondary); letter-spacing: .08em; }
+.cal-row { display: grid; grid-template-columns: 36px repeat(7,1fr); border-bottom: 1px solid var(--border); }
+.cal-row:last-child { border-bottom: none; }
+.cal-row-lbl { display: flex; align-items: center; justify-content: center; background: var(--bg-panel); font-size: 0.55rem; color: var(--text-muted); writing-mode: vertical-rl; padding: 4px 0; }
+.cal-cell { padding: 8px 2px; text-align: center; border-right: 1px solid var(--border); }
+.cal-cell:last-child { border-right: none; }
+.cal-day { font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 3px; }
+.cal-sh { font-size: 0.85rem; font-weight: 700; }
+.cal-sh.hiru { color: #ff4466; }
+.cal-sh.yoru { color: #4488ff; }
+.cal-sh.kyu  { color: var(--text-muted); }
+.cal-cell.is-today { background: rgba(0,212,255,.06); }
+.cal-cell.is-today .cal-day { color: var(--accent-cyan); font-weight: 700; }
+.cal-cell.has-memo .cal-day::after { content: '•'; color: var(--accent-gold); margin-left: 1px; font-size: 0.5rem; vertical-align: super; }
+
+/* ── Alarm bulk ── */
+.section-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px; margin-bottom: 14px;
+}
+.section-title {
+  font-size: 0.72rem; letter-spacing: .15em; color: var(--text-secondary);
+  text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.bulk-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.bulk-label { font-size: 0.82rem; min-width: 80px; }
+.bulk-label .shift-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.bulk-label .shift-dot.hiru { background: #ff4466; }
+.bulk-label .shift-dot.yoru { background: #4488ff; }
+
+input[type=time], input[type=date], input[type=text], select, textarea {
+  background: var(--bg-deep); border: 1px solid var(--border-bright);
+  color: var(--text-primary); padding: 9px 12px; border-radius: 9px;
+  font-family: 'Noto Sans JP', sans-serif; font-size: 0.85rem;
+  outline: none; transition: border-color .2s; width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent-cyan); }
+
+.toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.toggle-row label { font-size: 0.82rem; flex: 1; }
+
+.toggle {
+  width: 42px; height: 24px; background: var(--text-muted); border-radius: 12px;
+  position: relative; cursor: pointer; border: none; transition: background .2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--accent-cyan); }
+.toggle::after {
+  content: ''; position: absolute; width: 18px; height: 18px; background: white;
+  border-radius: 50%; top: 3px; left: 3px; transition: left .2s;
+}
+.toggle.on::after { left: 21px; }
+
+.btn {
+  padding: 10px 18px; border: none; border-radius: 9px; cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif; font-size: 0.85rem; transition: all .2s; font-weight: 500;
+}
+.btn-cyan { background: rgba(0,212,255,.15); border: 1px solid rgba(0,212,255,.4); color: var(--accent-cyan); width: 100%; }
+.btn-cyan:hover { background: rgba(0,212,255,.25); }
+.btn-sm-del { background: rgba(255,68,102,.1); border: 1px solid rgba(255,68,102,.3); color: #ff4466; padding: 5px 10px; font-size: 0.72rem; border-radius: 7px; cursor: pointer; }
+
+.alarm-item {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+.alarm-item.hiru-item { border-left: 3px solid #ff4466; }
+.alarm-item.yoru-item { border-left: 3px solid #4488ff; }
+.alarm-item.custom-item { border-left: 3px solid var(--accent-gold); }
+.alarm-item.off { opacity: .5; }
+.alarm-time-big { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; }
+.alarm-time-big.hiru { color: #ff4466; }
+.alarm-time-big.yoru { color: #4488ff; }
+.alarm-time-big.custom { color: var(--accent-gold); }
+.alarm-sub { font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px; }
+.alarm-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Search */
+.filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter-row > div { flex: 1; min-width: 130px; }
+.filter-lbl { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; }
+.result-item {
+  display: grid; grid-template-columns: 90px 50px 1fr;
+  align-items: center; gap: 10px; padding: 11px 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 6px;
+}
+.r-date { font-size: 0.8rem; color: var(--text-secondary); }
+.r-shift { font-weight: 700; font-size: 0.88rem; }
+.r-shift.hiru { color: #ff4466; }
+.r-shift.yoru { color: #4488ff; }
+.r-shift.kyu  { color: var(--text-muted); }
+.r-memo { font-size: 0.75rem; color: var(--accent-gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Memo */
+.memo-item {
+  background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent-gold);
+  border-radius: 9px; padding: 12px 14px; margin-bottom: 8px;
+}
+.memo-item-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.memo-item-date { font-size: 0.75rem; color: var(--accent-gold); font-weight: 600; }
+.memo-item-body { font-size: 0.83rem; line-height: 1.55; }
+
+.no-data { text-align: center; color: var(--text-muted); padding: 36px; font-size: 0.85rem; }
+
+/* Notification */
+.notif {
+  position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-panel); border: 1px solid var(--accent-cyan); border-radius: 12px;
+  padding: 12px 22px; color: var(--accent-cyan); font-weight: 600; font-size: 0.88rem;
+  z-index: 9999; box-shadow: 0 0 30px rgba(0,212,255,.3); display: none; white-space: nowrap;
+  animation: slideIn .3s ease;
+}
+@keyframes slideIn { from { opacity:0; transform: translateX(-50%) translateY(-12px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+/* Install prompt */
+.install-banner {
+  background: linear-gradient(135deg, rgba(0,212,255,.1), rgba(68,136,255,.1));
+  border: 1px solid rgba(0,212,255,.3); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 14px; display: none;
+  align-items: center; justify-content: space-between; gap: 12px;
+}
+.install-banner.show { display: flex; }
+.install-text { font-size: 0.82rem; color: var(--text-primary); line-height: 1.4; }
+.install-text small { color: var(--text-secondary); font-size: 0.72rem; }
+.btn-install { background: var(--accent-cyan); color: #000; border: none; border-radius: 8px; padding: 9px 16px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="notif" id="notif"></div>
+
+<!-- Header -->
+<div class="app-header">
+  <div class="logo">SHIFT SYS <small>A班勤務表 2026–2027</small></div>
+  <div id="clockDisplay"></div>
+</div>
+
+<div class="wrap">
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <div class="install-text">
+      ホーム画面に追加してアプリとして使えます<br>
+      <small>オフラインでも動作します</small>
+    </div>
+    <button class="btn-install" id="installBtn">追加</button>
+  </div>
+
+  <!-- Today -->
+  <div class="today-card">
+    <div class="today-lbl">TODAY'S SHIFT</div>
+    <div class="today-date-str" id="todayDateStr">—</div>
+    <div id="todayBadge"></div>
+    <div class="next-shift-row" id="nextShiftRow"></div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="panel active" id="panel-cal">
+    <div class="cal-nav-row">
+      <button class="nav-arrow" onclick="changeMonth(-1)">◀</button>
+      <div class="cal-month-lbl" id="calLbl">—</div>
+      <button class="nav-arrow" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-head">
+        <div class="cal-head-cell"></div>
+        <div class="cal-head-cell">月</div><div class="cal-head-cell">火</div>
+        <div class="cal-head-cell">水</div><div class="cal-head-cell">木</div>
+        <div class="cal-head-cell">金</div><div class="cal-head-cell">土</div>
+        <div class="cal-head-cell">日</div>
+      </div>
+      <div id="calBody"></div>
+    </div>
+  </div>
+
+  <!-- Alarm -->
+  <div class="panel" id="panel-alarm">
+
+    <!-- アラーム時刻設定 -->
+    <div class="section-card">
+      <div class="section-title">アラーム時刻設定</div>
+      <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+        スマートアラームfreeに手動登録する際の参考時刻です。
+      </div>
+      <div class="bulk-row">
+        <div class="bulk-label"><span class="shift-dot hiru"></span>昼勤</div>
+        <div style="flex:1;"><input type="time" id="hiruAlarmTime" value="06:00"></div>
+      </div>
+      <div class="bulk-row">
+        <div class="bulk-label"><span class="shift-dot yoru"></span>夜勤</div>
+        <div style="flex:1;"><input type="time" id="yoruAlarmTime" value="21:00"></div>
+      </div>
+    </div>
+
+    <!-- シフト一覧 -->
+    <div class="section-card">
+      <div class="section-title">登録すべきアラーム一覧</div>
+      <div class="filter-row" style="margin-bottom:14px;">
+        <div>
+          <div class="filter-lbl">月</div>
+          <select id="alarmMonth" onchange="renderAlarmList()">
+            <option value="2026-6">2026年6月</option>
+            <option value="2026-7">2026年7月</option>
+            <option value="2026-8">2026年8月</option>
+            <option value="2026-9">2026年9月</option>
+            <option value="2026-10">2026年10月</option>
+            <option value="2026-11">2026年11月</option>
+            <option value="2026-12">2026年12月</option>
+            <option value="2027-1">2027年1月</option>
+            <option value="2027-2">2027年2月</option>
+            <option value="2027-3">2027年3月</option>
+          </select>
+        </div>
+        <div>
+          <div class="filter-lbl">シフト</div>
+          <select id="alarmShiftFilter" onchange="renderAlarmList()">
+            <option value="all">昼・夜のみ</option>
+            <option value="hiru">昼勤のみ</option>
+            <option value="yoru">夜勤のみ</option>
+          </select>
+        </div>
+      </div>
+      <div id="alarmList"><div class="no-data">月を選んでください</div></div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="panel" id="panel-search">
+    <div class="filter-row">
+      <div>
+        <div class="filter-lbl">月</div>
+        <select id="sMonth" onchange="renderSearch()">
+          <option value="all">すべて</option>
+          <option value="2026-6">2026年6月</option><option value="2026-7">2026年7月</option>
+          <option value="2026-8">2026年8月</option><option value="2026-9">2026年9月</option>
+          <option value="2026-10">2026年10月</option><option value="2026-11">2026年11月</option>
+          <option value="2026-12">2026年12月</option><option value="2027-1">2027年1月</option>
+          <option value="2027-2">2027年2月</option><option value="2027-3">2027年3月</option>
+        </select>
+      </div>
+      <div>
+        <div class="filter-lbl">シフト</div>
+        <select id="sShift" onchange="renderSearch()">
+          <option value="all">すべて</option>
+          <option value="昼">昼（日勤）</option>
+          <option value="夜">夜（夜勤）</option>
+          <option value="休">休（休日）</option>
+        </select>
+      </div>
+    </div>
+    <div id="searchSummary" style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:10px;"></div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- Memo -->
+  <div class="panel" id="panel-memo">
+    <div class="section-card">
+      <div class="section-title">メモ追加</div>
+      <div class="filter-lbl">日付</div>
+      <input type="date" id="memoDate" style="margin-bottom:10px;">
+      <div class="filter-lbl" style="margin-top:4px;">内容</div>
+      <textarea id="memoText" placeholder="メモを入力..." style="margin-bottom:10px;min-height:80px;"></textarea>
+      <button class="btn btn-cyan" onclick="addMemo()">保存</button>
+    </div>
+    <div id="memoList"></div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('cal',this)"><div class="icon">📅</div>カレンダー</button>
+  <button class="nav-btn" onclick="switchTab('alarm',this)"><div class="icon">⏰</div>アラーム</button>
+  <button class="nav-btn" onclick="switchTab('search',this)"><div class="icon">🔍</div>検索</button>
+  <button class="nav-btn" onclick="switchTab('memo',this)"><div class="icon">📝</div>メモ</button>
+</div>
+
+<script>
+// ── SCHEDULE DATA ──
+const SC = {};
+function sd(m, arr) { arr.forEach(([d,s]) => SC[`${m}-${d}`] = s); }
+
+sd('2026-6',[[1,'休'],[2,'昼'],[3,'昼'],[4,'夜'],[5,'夜'],[6,'休'],[7,'休'],[8,'休'],[9,'休'],[10,'昼'],[11,'昼'],[12,'夜'],[13,'夜'],[14,'休'],[15,'休'],[16,'休'],[17,'休'],[18,'昼'],[19,'昼'],[20,'夜'],[21,'夜'],[22,'夜'],[23,'休'],[24,'休'],[25,'休'],[26,'昼'],[27,'昼'],[28,'夜'],[29,'夜'],[30,'夜']]);
+sd('2026-7',[[1,'休'],[2,'休'],[3,'休'],[4,'昼'],[5,'昼'],[6,'昼'],[7,'夜'],[8,'夜'],[9,'休'],[10,'休'],[11,'休'],[12,'昼'],[13,'昼'],[14,'昼'],[15,'夜'],[16,'夜'],[17,'休'],[18,'休'],[19,'休'],[20,'休'],[21,'昼'],[22,'昼'],[23,'夜'],[24,'夜'],[25,'休'],[26,'休'],[27,'休'],[28,'休'],[29,'昼'],[30,'昼'],[31,'夜']]);
+sd('2026-8',[[1,'夜'],[2,'休'],[3,'休'],[4,'休'],[5,'休'],[6,'昼'],[7,'昼'],[8,'夜'],[9,'夜'],[10,'夜'],[11,'休'],[12,'休'],[13,'休'],[14,'昼'],[15,'昼'],[16,'夜'],[17,'夜'],[18,'夜'],[19,'休'],[20,'休'],[21,'休'],[22,'昼'],[23,'昼'],[24,'昼'],[25,'夜'],[26,'夜'],[27,'休'],[28,'休'],[29,'休'],[30,'昼'],[31,'昼']]);
+sd('2026-9',[[1,'昼'],[2,'夜'],[3,'夜'],[4,'休'],[5,'休'],[6,'休'],[7,'休'],[8,'昼'],[9,'昼'],[10,'夜'],[11,'夜'],[12,'休'],[13,'休'],[14,'休'],[15,'休'],[16,'昼'],[17,'昼'],[18,'夜'],[19,'夜'],[20,'休'],[21,'休'],[22,'休'],[23,'休'],[24,'昼'],[25,'昼'],[26,'夜'],[27,'夜'],[28,'夜'],[29,'休'],[30,'休']]);
+sd('2026-10',[[1,'休'],[2,'昼'],[3,'昼'],[4,'夜'],[5,'夜'],[6,'夜'],[7,'休'],[8,'休'],[9,'休'],[10,'昼'],[11,'昼'],[12,'昼'],[13,'夜'],[14,'夜'],[15,'休'],[16,'休'],[17,'休'],[18,'昼'],[19,'昼'],[20,'昼'],[21,'夜'],[22,'夜'],[23,'休'],[24,'休'],[25,'休'],[26,'休'],[27,'昼'],[28,'昼'],[29,'夜'],[30,'夜'],[31,'休']]);
+sd('2026-11',[[1,'休'],[2,'休'],[3,'休'],[4,'昼'],[5,'昼'],[6,'夜'],[7,'夜'],[8,'休'],[9,'休'],[10,'休'],[11,'休'],[12,'昼'],[13,'昼'],[14,'夜'],[15,'夜'],[16,'夜'],[17,'休'],[18,'休'],[19,'休'],[20,'昼'],[21,'昼'],[22,'夜'],[23,'夜'],[24,'夜'],[25,'休'],[26,'休'],[27,'休'],[28,'昼'],[29,'昼'],[30,'昼']]);
+sd('2026-12',[[1,'夜'],[2,'夜'],[3,'休'],[4,'休'],[5,'休'],[6,'昼'],[7,'昼'],[8,'昼'],[9,'夜'],[10,'夜'],[11,'休'],[12,'休'],[13,'休'],[14,'休'],[15,'昼'],[16,'昼'],[17,'夜'],[18,'夜'],[19,'休'],[20,'休'],[21,'休'],[22,'休'],[23,'昼'],[24,'昼'],[25,'夜'],[26,'夜'],[27,'休'],[28,'休'],[29,'休'],[30,'休'],[31,'昼']]);
+sd('2027-1',[[1,'昼'],[2,'夜'],[3,'夜'],[4,'夜'],[5,'休'],[6,'休'],[7,'休'],[8,'昼'],[9,'昼'],[10,'夜'],[11,'夜'],[12,'夜'],[13,'休'],[14,'休'],[15,'休'],[16,'昼'],[17,'昼'],[18,'昼'],[19,'夜'],[20,'夜'],[21,'休'],[22,'休'],[23,'休'],[24,'昼'],[25,'昼'],[26,'昼'],[27,'夜'],[28,'夜'],[29,'休'],[30,'休'],[31,'休']]);
+sd('2027-2',[[1,'休'],[2,'昼'],[3,'昼'],[4,'夜'],[5,'夜'],[6,'休'],[7,'休'],[8,'休'],[9,'休'],[10,'昼'],[11,'昼'],[12,'夜'],[13,'夜'],[14,'休'],[15,'休'],[16,'休'],[17,'休'],[18,'昼'],[19,'昼'],[20,'夜'],[21,'夜'],[22,'夜'],[23,'休'],[24,'休'],[25,'休'],[26,'昼'],[27,'昼'],[28,'夜']]);
+sd('2027-3',[[1,'夜'],[2,'夜'],[3,'休'],[4,'休'],[5,'休'],[6,'昼'],[7,'昼'],[8,'昼'],[9,'夜'],[10,'夜'],[11,'休'],[12,'休'],[13,'休'],[14,'昼'],[15,'昼'],[16,'昼'],[17,'夜'],[18,'夜'],[19,'休'],[20,'休'],[21,'休'],[22,'休'],[23,'昼'],[24,'昼'],[25,'夜'],[26,'夜'],[27,'休'],[28,'休'],[29,'休'],[30,'休'],[31,'昼']]);
+
+function getShift(y,m,d){ return SC[`${y}-${m}-${d}`]||''; }
+function cls(s){ return s==='昼'?'hiru':s==='夜'?'yoru':'kyu'; }
+
+// ── STATE ──
+let curY=2026, curM=6;
+let memos = JSON.parse(localStorage.getItem('memos')||'{}');
+let bulkCfg = JSON.parse(localStorage.getItem('bulkCfg')||'{"hiru":{"time":"06:00"},"yoru":{"time":"21:00"}}');
+
+// ── CLOCK ──
+setInterval(()=>{
+  const n=new Date(), h=String(n.getHours()).padStart(2,'0'), m=String(n.getMinutes()).padStart(2,'0'), s=String(n.getSeconds()).padStart(2,'0');
+  document.getElementById('clockDisplay').textContent=`${h}:${m}:${s}`;
+},1000);
+
+// ── TODAY ──
+function renderToday(){
+  const n=new Date(), y=n.getFullYear(), m=n.getMonth()+1, d=n.getDate();
+  const WD=['日','月','火','水','木','金','土'];
+  document.getElementById('todayDateStr').textContent=`${y}年${m}月${d}日（${WD[n.getDay()]}）`;
+  const sh=getShift(y,m,d);
+  const lbl=sh==='昼'?'日勤（昼）':sh==='夜'?'夜勤（夜）':sh?'休日（休）':'—';
+  const b=document.getElementById('todayBadge');
+  b.innerHTML=sh?`<div class="shift-badge ${cls(sh)}"><div class="dot"></div>${lbl}</div>`:`<div style="color:var(--text-muted);font-size:.83rem;">対象期間外</div>`;
+
+  // Next shift
+  const nextRow=document.getElementById('nextShiftRow');
+  for(let i=1;i<=14;i++){
+    const nd=new Date(n); nd.setDate(d+i);
+    const ny=nd.getFullYear(), nm=nd.getMonth()+1, ndd=nd.getDate();
+    const nsh=getShift(ny,nm,ndd);
+    if(nsh&&nsh!=='休'){
+      const nwk=WD[nd.getDay()];
+      nextRow.innerHTML=`次のシフト: <span>${nm}/${ndd}（${nwk}）${nsh}</span>`;
+      return;
+    }
+  }
+  nextRow.innerHTML='';
+}
+
+// ── CALENDAR ──
+const MONTHS=[{y:2026,m:6},{y:2026,m:7},{y:2026,m:8},{y:2026,m:9},{y:2026,m:10},{y:2026,m:11},{y:2026,m:12},{y:2027,m:1},{y:2027,m:2},{y:2027,m:3}];
+
+function renderCal(){
+  document.getElementById('calLbl').textContent=`${curY}年${curM}月`;
+  const days=new Date(curY,curM,0).getDate();
+  const now=new Date(), ty=now.getFullYear(), tm=now.getMonth()+1, td=now.getDate();
+  let html=''; let day=1;
+  while(day<=days){
+    // Figure out weekday of this day to align (Mon=col1)
+    const wd=new Date(curY,curM-1,day).getDay(); // 0=Sun
+    // We show Mon-Sun across 7 cols
+    const endDay=Math.min(day+6,days);
+    html+=`<div class="cal-row"><div class="cal-row-lbl">${day}〜${endDay}</div>`;
+    for(let col=0;col<7;col++){
+      // col 0=Mon...col6=Sun
+      const targetWd=(col+1)%7; // Mon=1...Sun=0
+      // find the date in this row's 7-day block that matches this weekday
+      let cellDay=null;
+      for(let k=0;k<7;k++){
+        const dd=day+k;
+        if(dd>days) break;
+        const w=new Date(curY,curM-1,dd).getDay();
+        if(w===targetWd){ cellDay=dd; break; }
+      }
+      if(!cellDay){ html+=`<div class="cal-cell"></div>`; continue; }
+      const sh=getShift(curY,curM,cellDay);
+      const isToday=curY===ty&&curM===tm&&cellDay===td;
+      const hasMemo=!!memos[`${curY}-${curM}-${cellDay}`];
+      html+=`<div class="cal-cell${isToday?' is-today':''}${hasMemo?' has-memo':''}">
+        <div class="cal-day">${cellDay}</div>
+        <div class="cal-sh ${cls(sh)}">${sh||'—'}</div>
+      </div>`;
+    }
+    html+='</div>';
+    day+=7;
+  }
+  document.getElementById('calBody').innerHTML=html;
+}
+
+function changeMonth(d){
+  let idx=MONTHS.findIndex(o=>o.y===curY&&o.m===curM);
+  idx=Math.max(0,Math.min(MONTHS.length-1,idx+d));
+  curY=MONTHS[idx].y; curM=MONTHS[idx].m;
+  renderCal();
+}
+
+// ── TABS ──
+function switchTab(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  btn.classList.add('active');
+  if(name==='search') renderSearch();
+  if(name==='memo') renderMemos();
+  if(name==='alarm'){ syncBulkUI(); renderAlarmList(); }
+}
+
+// ── ANDROID ALARM INTENT ──
+// 登録済みキーの管理
+let registeredAlarms = JSON.parse(localStorage.getItem('registeredAlarms')||'{}');
+function saveRegistered(){ localStorage.setItem('registeredAlarms', JSON.stringify(registeredAlarms)); }
+
+function toggleRegistered(key){
+  if(registeredAlarms[key]) delete registeredAlarms[key];
+  else registeredAlarms[key] = true;
+  saveRegistered();
+  renderAlarmList();
+}
+
+function renderAlarmList() {
+  const monthVal = document.getElementById('alarmMonth').value;
+  const shiftFilter = document.getElementById('alarmShiftFilter').value;
+  const hiruTime = document.getElementById('hiruAlarmTime').value || '06:00';
+  const yoruTime = document.getElementById('yoruAlarmTime').value || '21:00';
+  const [ym, ymm] = monthVal.split('-').map(Number);
+  const WD = ['日','月','火','水','木','金','土'];
+
+  let entries = Object.entries(SC).filter(([k, sh]) => {
+    const [y, m] = k.split('-').map(Number);
+    if (y !== ym || m !== ymm) return false;
+    if (sh === '休') return false;
+    if (shiftFilter === 'hiru' && sh !== '昼') return false;
+    if (shiftFilter === 'yoru' && sh !== '夜') return false;
+    return true;
+  }).sort(([a],[b]) => {
+    const d = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y,m-1,d).getTime(); };
+    return d(a) - d(b);
+  });
+
+  if (!entries.length) {
+    document.getElementById('alarmList').innerHTML = '<div class="no-data">該当シフトなし</div>';
+    return;
+  }
+
+  const total = entries.length;
+  const done = entries.filter(([k]) => registeredAlarms[k]).length;
+
+  const html = entries.map(([k, sh]) => {
+    const [y, m, d] = k.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    const wd = WD[dt.getDay()];
+    const isHiru = sh === '昼';
+    const time = isHiru ? hiruTime : yoruTime;
+    const typeClass = isHiru ? 'hiru-item' : 'yoru-item';
+    const timeClass = isHiru ? 'hiru' : 'yoru';
+    const isDone = !!registeredAlarms[k];
+    return `<div class="alarm-item ${typeClass}" style="opacity:${isDone?'0.45':'1'};">
+      <div>
+        <div class="alarm-time-big ${timeClass}">${time}</div>
+        <div class="alarm-sub">${m}/${d}（${wd}） ${sh}勤</div>
+      </div>
+      <button onclick="toggleRegistered('${k}')" style="
+        padding:8px 14px;border-radius:9px;font-size:0.8rem;font-weight:700;cursor:pointer;border:1px solid;
+        ${isDone
+          ? 'background:rgba(0,230,118,.15);border-color:rgba(0,230,118,.4);color:var(--accent-green);'
+          : 'background:rgba(122,130,153,.1);border-color:rgba(122,130,153,.3);color:var(--text-secondary);'}
+      ">${isDone ? '✓ 登録済' : '未登録'}</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('alarmList').innerHTML =
+    `<div style="font-size:.7rem;color:var(--text-secondary);margin-bottom:12px;">
+      登録済み <span style="color:var(--accent-green);font-weight:700;">${done}</span> / ${total}件
+      &nbsp;·&nbsp; タップで登録済みにマーク
+    </div>` + html;
+}
+
+function syncBulkUI(){
+  // 時刻入力欄の初期値をlocalStorageから復元
+  const ht = document.getElementById('hiruAlarmTime');
+  const yt = document.getElementById('yoruAlarmTime');
+  const saved = JSON.parse(localStorage.getItem('bulkCfg')||'{}');
+  if(ht && saved.hiru) ht.value = saved.hiru.time || '06:00';
+  if(yt && saved.yoru) yt.value = saved.yoru.time || '21:00';
+  // 時刻変更時に保存
+  if(ht) ht.addEventListener('change', saveAlarmTimes);
+  if(yt) yt.addEventListener('change', saveAlarmTimes);
+}
+
+function saveAlarmTimes(){
+  const ht = document.getElementById('hiruAlarmTime').value;
+  const yt = document.getElementById('yoruAlarmTime').value;
+  localStorage.setItem('bulkCfg', JSON.stringify({hiru:{time:ht},yoru:{time:yt}}));
+  renderAlarmList();
+}
+
+// ── SEARCH ──
+function renderSearch(){
+  const mf=document.getElementById('sMonth').value;
+  const sf=document.getElementById('sShift').value;
+  let res=Object.entries(SC).filter(([k,sh])=>{
+    const [y,m]=k.split('-');
+    if(mf!=='all'&&`${y}-${m}`!==mf) return false;
+    if(sf!=='all'&&sh!==sf) return false;
+    return true;
+  }).sort(([a],[b])=>{
+    const toMs=k=>{ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).getTime(); };
+    return toMs(a)-toMs(b);
+  });
+
+  const WD=['日','月','火','水','木','金','土'];
+  document.getElementById('searchSummary').textContent=
+    res.length?`${res.length}件 / 昼:${res.filter(([,s])=>s==='昼').length} 夜:${res.filter(([,s])=>s==='夜').length} 休:${res.filter(([,s])=>s==='休').length}`:'';
+
+  document.getElementById('searchResults').innerHTML=res.length
+    ? res.map(([k,sh])=>{
+        const [y,m,d]=k.split('-');
+        const dt=new Date(Number(y),Number(m)-1,Number(d));
+        const wd=WD[dt.getDay()];
+        const memo=memos[k]?`📝 ${memos[k].substring(0,18)}${memos[k].length>18?'…':''}`:'';
+        return `<div class="result-item"><div class="r-date">${m}/${d}（${wd}）</div><div class="r-shift ${cls(sh)}">${sh}</div><div class="r-memo">${memo}</div></div>`;
+      }).join('')
+    : '<div class="no-data">該当なし</div>';
+}
+
+// ── MEMO ──
+function addMemo(){
+  const date=document.getElementById('memoDate').value;
+  const text=document.getElementById('memoText').value.trim();
+  if(!date||!text){ showNotif('日付と内容を入力してください'); return; }
+  const [y,m,d]=date.split('-');
+  memos[`${y}-${Number(m)}-${Number(d)}`]=text;
+  localStorage.setItem('memos',JSON.stringify(memos));
+  document.getElementById('memoText').value='';
+  renderMemos(); renderCal();
+  showNotif('✓ メモを保存しました');
+}
+
+function deleteMemo(key){
+  delete memos[key];
+  localStorage.setItem('memos',JSON.stringify(memos));
+  renderMemos(); renderCal();
+}
+
+function renderMemos(){
+  const entries=Object.entries(memos).sort(([a],[b])=>a<b?-1:1);
+  const WD=['日','月','火','水','木','金','土'];
+  document.getElementById('memoList').innerHTML=entries.length
+    ? entries.map(([k,txt])=>{
+        const [y,m,d]=k.split('-').map(Number);
+        const sh=getShift(y,m,d);
+        const dt=new Date(y,m-1,d), wd=WD[dt.getDay()];
+        return `<div class="memo-item">
+          <div class="memo-item-hd">
+            <span class="memo-item-date">${y}年${m}月${d}日（${wd}）<span class="r-shift ${cls(sh)}" style="margin-left:8px;font-size:.78rem;">${sh}</span></span>
+            <button class="btn-sm-del" onclick="deleteMemo('${k}')">削除</button>
+          </div>
+          <div class="memo-item-body">${txt.replace(/\n/g,'<br>')}</div>
+        </div>`;
+      }).join('')
+    : '<div class="no-data">メモなし</div>';
+}
+
+// ── NOTIF ──
+let ntTimer;
+function showNotif(msg){
+  const el=document.getElementById('notif');
+  el.textContent=msg; el.style.display='block';
+  clearTimeout(ntTimer);
+  ntTimer=setTimeout(()=>el.style.display='none',3000);
+}
+
+// ── PWA INSTALL ──
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  document.getElementById('installBanner').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click',async()=>{
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  document.getElementById('installBanner').classList.remove('show');
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('installBanner').classList.remove('show');
+  showNotif('✓ アプリをインストールしました！');
+});
+
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── INIT ──
+const nowInit=new Date(), niY=nowInit.getFullYear(), niM=nowInit.getMonth()+1;
+if(MONTHS.find(o=>o.y===niY&&o.m===niM)){ curY=niY; curM=niM; }
+// アラーム月選択を今月に初期設定
+const alarmMonthSel=document.getElementById('alarmMonth');
+const curMonthVal=`${niY}-${niM}`;
+if(alarmMonthSel){
+  const opt=[...alarmMonthSel.options].find(o=>o.value===curMonthVal);
+  if(opt) alarmMonthSel.value=curMonthVal;
+}
+renderToday();
+renderCal();
+syncBulkUI();
+</script>
+</body>
+</html>
