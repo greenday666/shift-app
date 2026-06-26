@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00c6ff"/>
+      <stop offset="100%" style="stop-color:#0072ff"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.25"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景角丸四角 -->
+  <rect width="512" height="512" rx="110" ry="110" fill="url(#bg)"/>
+  <!-- 光沢 -->
+  <rect width="512" height="256" rx="110" ry="110" fill="url(#shine)"/>
+
+  <!-- カレンダー本体 -->
+  <rect x="90" y="140" width="332" height="272" rx="24" ry="24" fill="#ffffff" opacity="0.95"/>
+
+  <!-- カレンダーヘッダー帯 -->
+  <rect x="90" y="140" width="332" height="72" rx="24" ry="24" fill="#0058cc"/>
+  <rect x="90" y="188" width="332" height="24" fill="#0058cc"/>
+
+  <!-- ヘッダー文字「A班」 -->
+  <text x="256" y="193" font-family="sans-serif" font-weight="bold" font-size="42" fill="#ffffff" text-anchor="middle">A班</text>
+
+  <!-- フック左 -->
+  <rect x="168" y="108" width="24" height="64" rx="12" fill="#0058cc"/>
+  <!-- フック右 -->
+  <rect x="320" y="108" width="24" height="64" rx="12" fill="#0058cc"/>
+
+  <!-- グリッド線 横 -->
+  <line x1="90" y1="284" x2="422" y2="284" stroke="#ddeeff" stroke-width="2"/>
+  <line x1="90" y1="340" x2="422" y2="340" stroke="#ddeeff" stroke-width="2"/>
+  <line x1="90" y1="396" x2="422" y2="396" stroke="#ddeeff" stroke-width="2"/>
+
+  <!-- グリッド線 縦 -->
+  <line x1="185" y1="212" x2="185" y2="412" stroke="#ddeeff" stroke-width="2"/>
+  <line x1="280" y1="212" x2="280" y2="412" stroke="#ddeeff" stroke-width="2"/>
+  <line x1="375" y1="212" x2="375" y2="412" stroke="#ddeeff" stroke-width="2"/>
+
+  <!-- 日マス（昼＝水色丸） -->
+  <circle cx="137" cy="312" r="18" fill="#00c6ff" opacity="0.85"/>
+  <circle cx="232" cy="312" r="18" fill="#00c6ff" opacity="0.85"/>
+  <circle cx="137" cy="368" r="18" fill="#00c6ff" opacity="0.85"/>
+
+  <!-- 夜マス（濃青丸） -->
+  <circle cx="327" cy="312" r="18" fill="#0058cc" opacity="0.85"/>
+  <circle cx="232" cy="368" r="18" fill="#0058cc" opacity="0.85"/>
+
+  <!-- 休マス（薄グレー丸） -->
+  <circle cx="399" cy="312" r="18" fill="#b0c8e8" opacity="0.85"/>
+  <circle cx="327" cy="368" r="18" fill="#b0c8e8" opacity="0.85"/>
+  <circle cx="399" cy="368" r="18" fill="#b0c8e8" opacity="0.85"/>
+</svg>
