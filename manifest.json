@@ -1,0 +1,13 @@
+{
+  "name": "A班勤務表 2026-2027",
+  "short_name": "A班シフト",
+  "description": "A班勤務表アプリ - シフト確認・アラーム・メモ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0d12",
+  "theme_color": "#00c6ff",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
